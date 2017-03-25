@@ -1,53 +1,98 @@
-set category_length=5
-set category_index=0
-set category[0]=L0
-set category[1]=L1
-set category[2]=L2
-set category[3]=C70
-set category[4]=C80
+::run.bat
 
+@echo off
+setlocal enabledelayedexpansion
 
-SET /A category_indexEndPoint=%category_length% - 1
-for /l %%i in (0, 1, %category_indexEndPoint%) do (
-  echo %%i
-  echo ********
+set categories=L0,L1,L2,C70,C80
+
+set count=0
+set parameters=
+set valid=1
+
+if "%1"=="" goto runMvn
+
+echo ==============================================
+echo Check all passed parameters
+time/t
+echo ==============================================
+:LOOP
+
+:: count++
+set count+=1
+
+:: Read the parameter
+for %%i in (%categories%) do (
+  echo Case - %%i
+  if /i "%1"=="%%i" (
+    echo %1 --------------- correct
+    call:myDosFunc %%i
+    goto shift
+  )
 )
 
+:: We check all categories, but no one matching
+echo %1 --------------- incorrect
+set valid=0
 
-:LoopStart
-IF %category_index% EQU %category_length% GOTO :EOF
+:shift
+shift /1
 
-set category_current=category[%category_index%]
+if "%1"=="" goto checkPara
+goto LOOP
+:END
 
-echo %category_current%
-echo %category[1]=L1%
-
-SET /A category_index=%category_index% + 1
-
-GOTO LoopStart
-
-
-
-
-if /i "%1"=="L0" (
-  echo 2222
-  echo %1
-
-  echo CallMyFunc
-  call:myDosFunc L0
-  echo ReturnedFromFunc
-
-  goto shift
+:checkPara
+if %valid%==0 (
+  echo Please correct your parameters
+  goto endOfBatch
+) else (
+  goto setPara
 )
 
-if /i "%1"=="L1" (
-  call:myDosFunc L1
+:setPara
+echo ==============================================
+echo The parameters got passed
+time/t
+echo ==============================================
+echo %parameters%
+set parameters=-Dgroups="%parameters%"
+echo Parameters: %parameters%
 
-  goto shift
-)
+:runMvn
+echo ==============================================
+echo Run mvn
+time/t
+echo ==============================================
+echo mvn test %parameters%
+mvn test %parameters%
 
-if /i "%1"=="L2" (
-  call:myDosFunc L2
 
-  goto shift
-)
+goto endOfBatch
+
+:: Define my functions
+:myDosFunc - here starts my function identified by it`s label
+  set category=%1
+
+  if defined parameters (
+    echo old parameters: !parameters!
+    echo new category: !category!
+
+    echo !parameters! | findstr !category!>nul && (
+        echo We already has category !category! in parameters
+    ) || (
+        echo This is a new category to be included
+        set newPara=, com.huawei.hec.mls.restapi.category.!category!Test
+        echo Func - newPara: !newPara!
+        set parameters=%parameters%!newPara!
+        echo Func - parameters: %parameters%
+        echo !parameters!
+    )
+  ) else (
+    set parameters=com.huawei.hec.mls.restapi.category.!category!Test
+    echo Func - parameters: %parameters%
+    echo !parameters!
+  )
+goto:eof
+
+
+:endOfBatch
